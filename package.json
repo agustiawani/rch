@@ -1,0 +1,8 @@
+{
+  "name": "rch",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "got-scraping": "^4.1.0"
+  }
+}
