@@ -1,10 +1,14 @@
 const express = require('express');
+const path = require('path');
 const { addExtra } = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const crypto = require('crypto');
 
 const app = express();
 app.use(express.json());
+
+// Sajikan file statis dari folder 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Konfigurasi API
 const FRONTEND_URL = 'https://kaze-reaction-wa.netlify.app';
@@ -22,7 +26,7 @@ puppeteer.use(StealthPlugin());
 function generateUsername() { return `usr_${crypto.randomBytes(6).toString('hex')}`; }
 function generateClientId() { return `zr_${crypto.randomBytes(10).toString('hex')}`; }
 
-// Fungsi utama bot
+// Fungsi utama bot (tidak berubah)
 async function runBot(waUrl, reactions) {
     const username = generateUsername();
     const clientId = generateClientId();
@@ -39,7 +43,7 @@ async function runBot(waUrl, reactions) {
             '--disable-setuid-sandbox',
             '--disable-blink-features=AutomationControlled',
             '--disable-gpu',
-            '--disable-dev-shm-usage' // Penting untuk container
+            '--disable-dev-shm-usage'
         ]
     });
 
@@ -56,7 +60,6 @@ async function runBot(waUrl, reactions) {
             Object.defineProperty(navigator, 'platform', { get: () => 'Android' });
         });
 
-        // STEP 0: Navigasi ke frontend
         console.log('[PRE-STEP] Navigating to frontend origin...');
         await page.goto(FRONTEND_URL, { waitUntil: 'networkidle2', timeout: 30000 });
         console.log('[+] Frontend loaded. Native Origin established.\n');
@@ -148,12 +151,12 @@ async function runBot(waUrl, reactions) {
     }
 }
 
-// Endpoint health check
+// Endpoint utama: menyajikan index.html (diatur oleh express.static, tapi kita juga bisa menangani secara eksplisit)
 app.get('/', (req, res) => {
-    res.json({ status: 'ok', message: 'WA VIP Reaction Bot is running on Railway' });
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Endpoint utama untuk mengirim reaction
+// Endpoint API untuk reaction
 app.post('/react', async (req, res) => {
     const { url, reactions } = req.body;
 
@@ -181,6 +184,6 @@ app.post('/react', async (req, res) => {
 
 // Jalankan server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
