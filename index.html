@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Kirim Reaksi - RCH</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f8f9fc;
+            color: #1e293b;
+        }
+        h1 { font-size: 24px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-top: 20px;
+        }
+        label { font-weight: 600; display: block; margin-top: 16px; margin-bottom: 4px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        textarea { resize: vertical; min-height: 60px; }
+        .row { display: flex; gap: 16px; }
+        .row > * { flex: 1; }
+        .emoji-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .emoji-btn {
+            font-size: 28px;
+            padding: 8px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .emoji-btn.active { border-color: #3b82f6; background: #eff6ff; transform: scale(1.05); }
+        .emoji-btn:hover { background: #f1f5f9; }
+        button[type="submit"] {
+            margin-top: 24px;
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button[type="submit"]:hover { background: #2563eb; }
+        button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+        #result {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+        .stats { display: flex; gap: 24px; margin: 12px 0; flex-wrap: wrap; }
+        .stats span { background: #e2e8f0; padding: 4px 14px; border-radius: 20px; font-weight: 600; }
+        .stats .ok { background: #bbf7d0; color: #166534; }
+        .stats .fail { background: #fecaca; color: #991b1b; }
+        .loader {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<h1>🧪 Kirim Reaksi — Test Frontend</h1>
+<p style="color: #64748b;">API endpoint: <code>/api/react</code> (otomatis sesuai domain)</p>
+
+<div class="card">
+    <form id="testForm">
+        <label for="url">🔗 URL Target</label>
+        <input type="url" id="url" placeholder="https://reactgo.order-rz.my.id/..." required />
+
+        <label>😀 Pilih Emoji (klik untuk pilih/ganti)</label>
+        <div class="emoji-grid" id="emojiGrid">
+            <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
+            <button type="button" class="emoji-btn" data-emoji="❤️">❤️</button>
+            <button type="button" class="emoji-btn" data-emoji="👍">👍</button>
+            <button type="button" class="emoji-btn" data-emoji="😍">😍</button>
+            <button type="button" class="emoji-btn" data-emoji="😂">😂</button>
+            <button type="button" class="emoji-btn" data-emoji="😮">😮</button>
+            <button type="button" class="emoji-btn" data-emoji="😢">😢</button>
+            <button type="button" class="emoji-btn" data-emoji="😡">😡</button>
+        </div>
+        <input type="hidden" id="selectedEmojis" value="[]" />
+
+        <div class="row">
+            <div>
+                <label for="jumlah">🔢 Jumlah kirim (1–50)</label>
+                <input type="number" id="jumlah" min="1" max="50" value="3" />
+            </div>
+            <div>
+                <label for="delay">⏱️ Delay (ms)</label>
+                <input type="number" id="delay" min="0" max="10000" value="1500" />
+            </div>
+        </div>
+
+        <button type="submit" id="submitBtn">🚀 Kirim Reaksi</button>
+    </form>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    (function() {
+        const form = document.getElementById('testForm');
+        const urlInput = document.getElementById('url');
+        const jumlahInput = document.getElementById('jumlah');
+        const delayInput = document.getElementById('delay');
+        const selectedEmojisHidden = document.getElementById('selectedEmojis');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+        const emojiBtns = document.querySelectorAll('.emoji-btn');
+
+        let selectedEmojis = [];
+
+        emojiBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const emoji = this.dataset.emoji;
+                const idx = selectedEmojis.indexOf(emoji);
+                if (idx === -1) {
+                    selectedEmojis.push(emoji);
+                    this.classList.add('active');
+                } else {
+                    selectedEmojis.splice(idx, 1);
+                    this.classList.remove('active');
+                }
+                selectedEmojisHidden.value = JSON.stringify(selectedEmojis);
+            });
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const url = urlInput.value.trim();
+            const jumlah = parseInt(jumlahInput.value, 10) || 1;
+            const delayMs = parseInt(delayInput.value, 10) || 1500;
+
+            if (!url) { alert('URL wajib diisi!'); return; }
+            if (selectedEmojis.length === 0) { alert('Pilih minimal satu emoji!'); return; }
+            if (jumlah < 1 || jumlah > 50) { alert('Jumlah harus antara 1–50'); return; }
+
+            const payload = { url, emojis: selectedEmojis, jumlah, delayMs };
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loader"></span> Mengirim...';
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '⏳ Sedang memproses...';
+
+            try {
+                const response = await fetch('/api/react', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    let text = `✅ ${data.message}\n`;
+                    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    text += `📊 Statistik:\n`;
+                    text += `   ✅ Berhasil: ${data.data.successCount}\n`;
+                    text += `   ❌ Gagal:    ${data.data.failedCount}\n`;
+                    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                    text += `📋 Detail per percobaan:\n`;
+                    data.data.results.forEach((r, i) => {
+                        const status = r.success ? '✅' : '❌';
+                        text += `  ${i+1}. ${status} ${r.message} (endpoint: ${r.endpoint})\n`;
+                    });
+                    resultDiv.textContent = text;
+                } else {
+                    resultDiv.textContent = `❌ Error: ${data.message || 'Terjadi kesalahan'}`;
+                }
+            } catch (err) {
+                resultDiv.textContent = `❌ Gagal menghubungi API: ${err.message}`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Kirim Reaksi';
+            }
+        });
+
+        // Default pilih 1 emoji
+        const firstBtn = document.querySelector('.emoji-btn');
+        if (firstBtn) firstBtn.click();
+    })();
+</script>
+
+</body>
+</html>
