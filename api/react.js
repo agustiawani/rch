@@ -44,7 +44,7 @@ async function sendReactionWithNewSession(url, emojis) {
   // Kita perlu tahu endpoint yang digunakan web. Dari analisis, kemungkinan /api/react
   // Tapi karena web menggunakan Socket.IO, mungkin ada endpoint REST juga.
   // Kita coba endpoint yang umum: /api/react atau /react
-  const endpoints = ['/api/react', '/react', '/api/web/react', '/react/send'];
+  const endpoints = ['/api/react', '/react', '/api/web/react', '/api/dev/react', '/react/send'];
 
   for (const endpoint of endpoints) {
     try {
